@@ -1,6 +1,6 @@
 {
   "name": "workersocket",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "API-compatible WebSocket that runs in a Web Worker.",
   "main": "index.js",
   "scripts": {
@@ -22,6 +22,7 @@
   },
   "homepage": "https://github.com/Breq16/workersocket#readme",
   "devDependencies": {
+    "@types/ws": "^8.2.2",
     "chai": "^4.3.4",
     "mocha": "^9.1.3",
     "typescript": "^4.6.0-dev.20220107"
@@ -33,5 +34,8 @@
   ],
   "exports": {
     "import": "./index.js"
+  },
+  "dependencies": {
+    "isomorphic-ws": "^4.0.1"
   }
 }

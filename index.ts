@@ -1,3 +1,5 @@
+import NodeWebSocket from "isomorphic-ws";
+
 const workerImpl = () => {
   let socket: WebSocket | null = null;
 
@@ -14,12 +16,16 @@ const workerImpl = () => {
     };
     socket.onmessage = (event: MessageEvent) => {
       self.postMessage({ type: "message", message: event.data });
-    }
+    };
   };
 
   self.addEventListener("message", ({ data }) => {
     if (data.type === "create") {
       connect(data.url, data.protocols || []);
+    } else if (data.type === "binaryType") {
+      if (socket) {
+        socket.binaryType = data.binaryType;
+      }
     } else if (data.type === "send") {
       if (socket) {
         socket.send(data.data);
@@ -33,14 +39,10 @@ const workerImpl = () => {
   });
 };
 
-const workerURL = URL.createObjectURL(
-  new Blob(["(" + workerImpl.toString() + ")();"], { type: "text/javascript" })
-);
-
 type WorkerSocketEvent = "open" | "close" | "error" | "message";
 
 class WorkerSocket {
-  worker: Worker;
+  worker: Worker | null;
 
   readyState = 0;
   listeners: {
@@ -55,7 +57,18 @@ class WorkerSocket {
     message: [],
   };
 
-  constructor(url: string, protocols: string[]) {
+  constructor(url: string, protocols: string[] = []) {
+    if (typeof window === "undefined") {
+      this.worker = null;
+      return new NodeWebSocket(url, protocols) as unknown as WorkerSocket;
+    }
+
+    const workerURL = URL.createObjectURL(
+      new Blob(["(" + workerImpl.toString() + ")();"], {
+        type: "text/javascript",
+      })
+    );
+
     this.worker = new Worker(workerURL);
     this.worker.postMessage({ type: "create", url, protocols });
 
@@ -70,29 +83,41 @@ class WorkerSocket {
         this.readyState = 3;
         this.listeners.error.forEach((listener) => listener(data.error));
       } else if (data.type === "message") {
-        this.listeners.message.forEach((listener) => listener(data.message));
+        this.listeners.message.forEach((listener) =>
+          listener(new MessageEvent("message", { data: data.message }))
+        );
       }
     };
   }
 
+  set binaryType(binaryType: "blob" | "arraybuffer") {
+    this.worker?.postMessage({ type: "binaryType", binaryType });
+  }
+
   send(data: string | ArrayBuffer) {
-    this.worker.postMessage({ type: "send", data });
+    this.worker?.postMessage({ type: "send", data });
   }
 
   close() {
-    this.worker.postMessage({ type: "close" });
+    this.worker?.postMessage({ type: "close" });
   }
 
   addEventListener(
     type: WorkerSocketEvent,
-    listener: (() => void) | ((error: Event) => void) | ((message: MessageEvent) => void)
+    listener:
+      | (() => void)
+      | ((error: Event) => void)
+      | ((message: MessageEvent) => void)
   ) {
     this.listeners[type].push(listener as () => void);
   }
 
   removeEventListener(
     type: WorkerSocketEvent,
-    listener: (() => void) | ((error: Event) => void) | ((message: MessageEvent) => void)
+    listener:
+      | (() => void)
+      | ((error: Event) => void)
+      | ((message: MessageEvent) => void)
   ) {
     this.listeners[type] = this.listeners[type].filter(
       (l) => l !== listener
@@ -100,19 +125,19 @@ class WorkerSocket {
   }
 
   set onopen(listener: () => void) {
-    this.addEventListener("open", listener);
+    this.listeners.open = listener ? [listener] : [];
   }
 
   set onclose(listener: () => void) {
-    this.addEventListener("close", listener);
+    this.listeners.close = listener ? [listener] : [];
   }
 
   set onerror(listener: (error: Event) => void) {
-    this.addEventListener("error", listener);
+    this.listeners.error = listener ? [listener] : [];
   }
 
   set onmessage(listener: (message: MessageEvent) => void) {
-    this.addEventListener("message", listener);
+    this.listeners.message = listener ? [listener] : [];
   }
 }
 
