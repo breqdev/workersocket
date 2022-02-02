@@ -1,0 +1,36 @@
+name: Test the package on Node.JS
+on: push
+jobs:
+  test:
+    name: Test if package is installable
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v2
+        with:
+          path: workersocket
+      - name: Set up Node
+        uses: actions/setup-node@v2
+        with:
+          node-version: "16"
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ./workersocket
+      - name: Build package
+        run: npm run build
+        working-directory: ./workersocket
+      - name: Create test package directory
+        run: mkdir test_package
+        working-directory: .
+      - name: Create test package
+        run: npm init --yes
+      - name: Install workersocket package
+        run: npm install ../workersocket
+        working-directory: ./test_package
+      - name: Create test script
+        run: echo 'import WorkerSocket from "workersocket"; process.exitCode = typeof(WorkerSocket) !== "function";' > index.mjs
+        working-directory: ./test_package
+      - name: Run test script
+        run: node index.mjs
+        working-directory: ./test_package
