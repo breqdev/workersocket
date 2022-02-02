@@ -1,5 +1,3 @@
-import NodeWebSocket from "isomorphic-ws";
-
 const workerImpl = () => {
   let socket: WebSocket | null = null;
 
@@ -58,11 +56,6 @@ class WorkerSocket {
   };
 
   constructor(url: string, protocols: string[] = []) {
-    if (typeof window === "undefined") {
-      this.worker = null;
-      return new NodeWebSocket(url, protocols) as unknown as WorkerSocket;
-    }
-
     const workerURL = URL.createObjectURL(
       new Blob(["(" + workerImpl.toString() + ")();"], {
         type: "text/javascript",
