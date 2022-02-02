@@ -1,6 +1,12 @@
 import WorkerSocket from "../index.js";
 import { expect } from "https://unpkg.com/@esm-bundle/chai/esm/chai.js";
 
+window.mocha.setup("bdd");
+window.mocha.checkLeaks();
+
+window.testFail = 0;
+window.testComplete = 0;
+
 describe("workersocket", () => {
   let socket;
 
@@ -81,3 +87,12 @@ describe("workersocket", () => {
     socket.close();
   });
 });
+
+window.mocha
+  .run()
+  .on("fail", (test, err) => {
+    window.testFail = 1;
+  })
+  .on("end", () => {
+    window.testComplete = 1;
+  });
