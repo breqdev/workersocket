@@ -55,7 +55,7 @@ describe("workersocket", () => {
     socket.close();
   });
 
-  it("does not allow disconnected sockets to be used", (done) => {
+  it("does not allow disconnected sockets to be used", () => {
     expect(() => socket.send("hiii")).to.throw();
   });
 

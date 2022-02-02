@@ -92,11 +92,17 @@ class WorkerSocket {
   }
 
   set binaryType(binaryType: "blob" | "arraybuffer") {
-    this.worker?.postMessage({ type: "binaryType", binaryType });
+    if (!this.worker) {
+      throw new Error("[workersocket] worker is not connected");
+    }
+    this.worker.postMessage({ type: "binaryType", binaryType });
   }
 
   send(data: string | ArrayBuffer) {
-    this.worker?.postMessage({ type: "send", data });
+    if (!this.worker) {
+      throw new Error("[workersocket] worker is not connected");
+    }
+    this.worker.postMessage({ type: "send", data });
   }
 
   close() {
