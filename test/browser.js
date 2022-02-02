@@ -19,6 +19,10 @@ describe("workersocket", () => {
     socket.onopen = done;
   });
 
+  it("sets the readystate to open", () => {
+    expect(socket.readyState).to.equal(1);
+  });
+
   it("can send and receive messages", (done) => {
     socket.onmessage = (message) => {
       if (message.data.startsWith("echo.websocket.events")) {
@@ -61,6 +65,10 @@ describe("workersocket", () => {
     socket.close();
   });
 
+  it("sets the readystate to closed", () => {
+    expect(socket.readyState).to.equal(3);
+  });
+
   it("does not allow disconnected sockets to be used", () => {
     expect(() => socket.send("hiii")).to.throw();
   });
@@ -68,6 +76,10 @@ describe("workersocket", () => {
   it("can reconnect the connection", (done) => {
     socket = new WorkerSocket("wss://echo.websocket.events");
     socket.onopen = done;
+  });
+
+  it("sets the readystate back to open", () => {
+    expect(socket.readyState).to.equal(1);
   });
 
   it("allows sending messages after reconnection", (done) => {
@@ -80,6 +92,14 @@ describe("workersocket", () => {
     };
 
     socket.send("hello");
+  });
+
+  it("can handle reconnections using the onclose event", (done) => {
+    socket.onclose = () => {
+      socket = new WorkerSocket("wss://echo.websocket.events");
+      socket.onopen = done;
+    };
+    socket.close();
   });
 
   it("can close the connection for cleanup", (done) => {

@@ -79,7 +79,6 @@ class WorkerSocket {
         this.readyState = 3;
         this.listeners.close.forEach((listener) => listener());
       } else if (data.type === "error") {
-        this.readyState = 3;
         this.listeners.error.forEach((listener) => listener(data.error));
       } else if (data.type === "message") {
         this.listeners.message.forEach((listener) =>
@@ -110,6 +109,7 @@ class WorkerSocket {
 
     this.worker?.removeEventListener("message", this.workerMessageHandler);
 
+    this.readyState = 3;
     this.listeners.close.forEach((listener) => listener());
 
     this.worker = null;
