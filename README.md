@@ -10,7 +10,7 @@ Web Workers are not available in Node.js. As a fallback, this module will return
 
 ## Deps
 
-- [`isomorphic-ws`](https://www.npmjs.com/package/isomorphic-ws) to support use with Node. Adds nothing to a browser bundle.
+- [`ws`](https://www.npmjs.com/package/ws) to support use with Node. Adds nothing to a browser bundle.
 
 ## Example
 
