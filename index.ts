@@ -1,13 +1,15 @@
-const workerImpl = () => {
-  let socket: WebSocket | null = null;
+const nanoid = () => Math.random().toString(36).substring(2, 9);
 
-  const connect = (url: string, protocols: string[]) => {
-    socket = new WebSocket(url, protocols);
+const workerImpl = () => {
+  let sockets: Record<string, WebSocket> = {};
+
+  const connect = (url: string, protocols: string[], socketId: string) => {
+    const socket = new WebSocket(url, protocols);
     socket.onopen = () => {
-      self.postMessage({ type: "open" });
+      self.postMessage({ type: "open", socketId });
     };
     socket.onclose = () => {
-      self.postMessage({ type: "close" });
+      self.postMessage({ type: "close", socketId });
     };
     socket.onerror = (error: Event) => {
       self.postMessage({
@@ -17,27 +19,33 @@ const workerImpl = () => {
           reason: (error as any).reason,
           wasClean: (error as any).wasClean,
         },
+        socketId,
       });
     };
     socket.onmessage = (event: MessageEvent) => {
-      self.postMessage({ type: "message", message: event.data });
+      self.postMessage({ type: "message", message: event.data, socketId });
     };
+
+    sockets[socketId] = socket;
   };
 
   self.addEventListener("message", ({ data }) => {
     if (data.type === "create") {
-      connect(data.url, data.protocols || []);
+      connect(data.url, data.protocols || [], data.socketId);
     } else if (data.type === "binaryType") {
-      if (socket) {
-        socket.binaryType = data.binaryType;
+      if (sockets[data.socketId]) {
+        sockets[data.socketId].binaryType = data.binaryType;
       }
     } else if (data.type === "send") {
-      if (socket && socket.readyState === WebSocket.OPEN) {
-        socket.send(data.data);
+      if (
+        sockets[data.socketId] &&
+        sockets[data.socketId].readyState === WebSocket.OPEN
+      ) {
+        sockets[data.socketId].send(data.data);
       }
     } else if (data.type === "close") {
-      if (socket) {
-        socket.close();
+      if (sockets[data.socketId]) {
+        sockets[data.socketId].close();
       }
     } else {
       console.warn("[workersocket] unknown message type", data.type);
@@ -56,8 +64,7 @@ const worker = new Worker(workerURL);
 type WorkerSocketEvent = "open" | "close" | "error" | "message";
 
 class WorkerSocket {
-  worker: Worker | null;
-
+  id: string;
   readyState = 0;
 
   listeners: {
@@ -75,10 +82,15 @@ class WorkerSocket {
   workerMessageHandler: (event: any) => void;
 
   constructor(url: string, protocols: string[] = []) {
-    this.worker = worker;
-    this.worker.postMessage({ type: "create", url, protocols });
+    this.id = nanoid();
+
+    worker.postMessage({ type: "create", url, protocols, socketId: this.id });
 
     this.workerMessageHandler = ({ data }: any) => {
+      if (data.socketId !== this.id) {
+        return;
+      }
+
       if (data.type === "open") {
         this.readyState = 1;
         this.listeners.open.forEach((listener) => listener());
@@ -94,32 +106,27 @@ class WorkerSocket {
       }
     };
 
-    this.worker.addEventListener("message", this.workerMessageHandler);
+    worker.addEventListener("message", this.workerMessageHandler);
   }
 
   set binaryType(binaryType: "blob" | "arraybuffer") {
-    if (!this.worker) {
-      throw new Error("[workersocket] worker is not connected");
-    }
-    this.worker.postMessage({ type: "binaryType", binaryType });
+    worker.postMessage({ type: "binaryType", binaryType, socketId: this.id });
   }
 
   send(data: string | ArrayBuffer) {
-    if (!this.worker) {
-      throw new Error("[workersocket] worker is not connected");
+    if (this.readyState !== 1) {
+      throw new Error("WebSocket is not open");
     }
-    this.worker.postMessage({ type: "send", data });
+    worker.postMessage({ type: "send", data, socketId: this.id });
   }
 
   close() {
-    this.worker?.postMessage({ type: "close" });
+    worker.postMessage({ type: "close", socketId: this.id });
 
-    this.worker?.removeEventListener("message", this.workerMessageHandler);
+    worker.removeEventListener("message", this.workerMessageHandler);
 
     this.readyState = 3;
     this.listeners.close.forEach((listener) => listener());
-
-    this.worker = null;
   }
 
   addEventListener(

@@ -105,6 +105,27 @@ describe("workersocket", () => {
     socket.close();
   });
 
+  it("can handle multiple sockets simultaneously", (done) => {
+    const second = new WorkerSocket("wss://echo.websocket.events");
+    second.onopen = () => {
+      second.onmessage = (message) => {
+        if (message.data.startsWith("echo.websocket.events")) {
+          return;
+        }
+        expect(message.data).to.equal("hello");
+        setTimeout(done, 100);
+      };
+      second.send("hello");
+    };
+
+    socket.onmessage = (message) => {
+      if (message.data.startsWith("echo.websocket.events")) {
+        return;
+      }
+      expect.fail("should not receive message");
+    };
+  });
+
   it("can close the connection for cleanup", (done) => {
     socket.onclose = done;
     socket.close();
