@@ -60,12 +60,15 @@ describe("workersocket", () => {
     socket.send("hello");
   });
 
-  it("can disconnect the connection", (done) => {
-    socket.onclose = done;
+  it("can disconnect the connection and set the ready state", (done) => {
+    socket.onclose = () => {
+      expect(socket.readyState).to.equal(3);
+      done();
+    };
     socket.close();
   });
 
-  it("sets the readystate to closed", () => {
+  it("sets the ready state appropriately", () => {
     expect(socket.readyState).to.equal(3);
   });
 
