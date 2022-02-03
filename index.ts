@@ -10,7 +10,14 @@ const workerImpl = () => {
       self.postMessage({ type: "close" });
     };
     socket.onerror = (error: Event) => {
-      self.postMessage({ type: "error", error });
+      self.postMessage({
+        type: "error",
+        error: {
+          code: (error as any).code,
+          reason: (error as any).reason,
+          wasClean: (error as any).wasClean,
+        },
+      });
     };
     socket.onmessage = (event: MessageEvent) => {
       self.postMessage({ type: "message", message: event.data });

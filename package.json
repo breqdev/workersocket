@@ -1,6 +1,6 @@
 {
   "name": "workersocket",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "API-compatible WebSocket that runs in a Web Worker.",
   "main": "index.js",
   "scripts": {
