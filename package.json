@@ -9,7 +9,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Breq16/workersocket.git"
+    "url": "git+https://github.com/breqdev/workersocket.git"
   },
   "keywords": [
     "websocket",
@@ -18,9 +18,9 @@
   "author": "Brooke Chalmers <breq@breq.dev> (https://breq.dev/)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/Breq16/workersocket/issues"
+    "url": "https://github.com/breqdev/workersocket/issues"
   },
-  "homepage": "https://github.com/Breq16/workersocket#readme",
+  "homepage": "https://github.com/breqdev/workersocket#readme",
   "devDependencies": {
     "@types/ws": "^8.2.2",
     "chai": "^4.3.6",
